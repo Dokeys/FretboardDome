@@ -12,82 +12,122 @@ from rich.control import Control
 from enum import Enum
 import sys
 import random
+import click
 
+UP_KEY = "àH"
+DOWN_KEY = "àP"
 
 console = Console()
+selection = 0
 
 
 class UserSelection(Enum):
-    PRINT_FRETBOARD = "1"
-    RANDOM_NOTE_FIND_TRAINER = "2"
-    PLACE_TO_NOTE_TRAINER = "3"
+    PRINT_FRETBOARD = 0
+    RANDOM_NOTE_FIND_TRAINER = 1
+    PLACE_TO_NOTE_TRAINER = 2
+    EXIT = 3
 
 
 def printTitle() -> None:
     console.print(Control.clear())
     console.print(Control.move_to(x=0, y=0))
-    console.print("🎸 Guitar Fretboard Trainer 🎸")
+    console.print("🎸 FretboardDome - The Fretboard Trainer 🎸")
     console.print("")
 
 
+def getStyleForSelection(currentSelection: UserSelection) -> str:
+    if selection == currentSelection.value:
+        style = "blue"
+    else:
+        style = ""
+
+    return style
+
+
 def printSelection() -> None:
-    console.print(
-        f"{UserSelection.PRINT_FRETBOARD.value}",
-        style="blue",
-        highlight=False,
-        end="",
-    )
-    console.print(" - Print fretboard")
+    console.print(Control.move_to(x=0, y=3))
 
     console.print(
-        f"{UserSelection.RANDOM_NOTE_FIND_TRAINER.value}",
-        style="blue",
-        highlight=False,
-        end="",
+        "   Print fretboard", style=getStyleForSelection(UserSelection.PRINT_FRETBOARD)
     )
-    console.print(" - Random note find trainer")
-
     console.print(
-        f"{UserSelection.PLACE_TO_NOTE_TRAINER.value}",
-        style="blue",
-        highlight=False,
-        end="",
+        "   Random note find trainer",
+        style=getStyleForSelection(UserSelection.RANDOM_NOTE_FIND_TRAINER),
     )
-    console.print(" - Fretboard place to note trainer")
-
     console.print(
-        f"q",
-        style="blue",
-        highlight=False,
-        end="",
+        "   Fretboard place to note trainer",
+        style=getStyleForSelection(UserSelection.PLACE_TO_NOTE_TRAINER),
     )
-    console.print(" - Exit")
+    console.print("   Exit", style=getStyleForSelection(UserSelection.EXIT))
+
+    console.print(Control.move_to(x=0, y=3 + selection))
+    console.print("➡")
+
+    console.print(Control.move_to(x=0, y=10))
 
 
 def userSelection() -> UserSelection:
-    printSelection()
-    userInput = input("Input number:")
-    if userInput == "q":
-        sys.exit(1)
-    selection = UserSelection(userInput)
+    global selection
+    pressedKey = ""
+    while True:
+        printTitle()
+        printSelection()
+        pressedKey = click.getchar()
+        if pressedKey == "q":
+            sys.exit(1)
+        elif pressedKey == UP_KEY:
+            selection -= 1
+        elif pressedKey == DOWN_KEY:
+            selection += 1
+        elif pressedKey == "\n" or pressedKey == "\r":  # enter
+            return UserSelection(selection)
 
-    return selection
+        if selection < 0:
+            selection = 0
+        elif selection > len(UserSelection) - 1:
+            selection = len(UserSelection) - 1
+
+
+def printFretboard() -> None:
+    printTitle()
+    FretboardCLI.moveFretboardLine(3)
+    FretboardCLI.printEmptyFretboard()
+    FretboardCLI.printFretboardNotes()
+
+    console.print(Control.move_to(x=0, y=11))
+    console.print("Press any key to go to menu.", style="grey42")
+    input()
 
 
 def randomNoteFindTrainer() -> None:
     while True:
-        console.print(Control.clear())
-        console.print(Control.move_to(x=0, y=0))
+        printTitle()
+        console.print(Control.move_to(x=0, y=2))
         noteToFind = random.choice(chromaticScale)
-        console.print(f"Find note: {noteToFind}")
-        userInput = input("Enter q to quit:")
-        if userInput == "q":
+        console.print(f"Find note {noteToFind} on your guitar.")
+        FretboardCLI.moveFretboardLine(5)
+        FretboardCLI.printEmptyFretboard()
+        console.print(Control.move_to(x=0, y=13))
+        console.print(
+            "Press any key to show notes on fretboard or q to go o menu.",
+            style="grey42",
+        )
+        if click.getchar() == "q":
             break
-        FretboardCLI.printFretboard(highlightNotes=[noteToFind])
+        FretboardCLI.printFretboardNotes(highlightNotes=[noteToFind])
+        console.print(Control.move_to(x=0, y=13))
+        console.print(
+            "Press any key for next note or q to go to menu.              ",
+            style="grey42",
+        )
+        if click.getchar() == "q":
+            break
 
 
 def placeToNoteTrainer() -> None:
     while True:
+        printTitle()
+        FretboardCLI.moveFretboardLine(3)
         FretboardCLI.printEmptyFretboard()
         searchString = random.randint(0, 5)
         searchFret = random.randint(0, 11)
@@ -117,8 +157,12 @@ def placeToNoteTrainer() -> None:
             console.print(
                 f"❌ Wrong input, searched note was {searchNote}.", style="red"
             )
-        userInput = input("Enter q for quit or enter for next:")
-        if userInput == "q":
+        console.print(Control.move_to(x=0, y=13))
+        console.print(
+            "Press any key for next note or q to go to menu.              ",
+            style="grey42",
+        )
+        if click.getchar() == "q":
             break
 
 
@@ -127,8 +171,12 @@ def runCLI() -> None:
         printTitle()
         selection = userSelection()
         if selection == UserSelection.PRINT_FRETBOARD:
-            FretboardCLI.printFretboard()
+            printFretboard()
         elif selection == UserSelection.RANDOM_NOTE_FIND_TRAINER:
             randomNoteFindTrainer()
         elif selection == UserSelection.PLACE_TO_NOTE_TRAINER:
             placeToNoteTrainer()
+        elif selection == UserSelection.EXIT:
+            console.print(Control.clear())
+            console.print(Control.move_to(x=0, y=0))
+            sys.exit(1)

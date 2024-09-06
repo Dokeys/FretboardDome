@@ -11,7 +11,7 @@ from rich.control import Control
 
 console = Console()
 
-printFretboardLine = 2
+printFretboardLine = 3
 
 
 def printOnFret(
@@ -42,10 +42,9 @@ def printOnFret(
 
 def printEmptyFretboard() -> None:
     """! Draw fretboard without notes"""
-    console.print(Control.clear())
-    console.print(Control.move_to(x=0, y=0))
-    console.print("🎼 Fretboard:")
     line = printFretboardLine
+    console.print(Control.move_to(x=0, y=line - 1))
+    console.print("🎼 Fretboard:")
     console.print(Control.move_to(x=0, y=line))
     console.print(
         "    0     1      2      3      4   O  5      6  oo  7      8   O  9      10     11",
@@ -84,4 +83,8 @@ def printFretboard(highlightNotes: list = None) -> None:
     """! Print fretboard with notes"""
     printEmptyFretboard()
     printFretboardNotes(highlightNotes)
-    input()
+
+
+def moveFretboardLine(newLine: int) -> None:
+    global printFretboardLine
+    printFretboardLine = newLine
